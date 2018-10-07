@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8"/>
+    <title></title>
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.css"/>
+    <link rel="stylesheet" type="text/css" href="css/pb.css"/>
+    <style type="text/css">
+        body {
+            margin: 30px;
+        }
+
+        #result {
+            padding: 15px;
+        }
+    </style>
+
+
+</head>
+
+<body>
+<script src="js/jquery-1.12.4.min.js" type="text/javascript" charset="utf-8"></script>
+<script src="js/bootstrap.js" type="text/javascript" charset="utf-8"></script>
+<script src="js/pb.js" type="text/javascript" charset="utf-8"></script>
+<script src="js/jsrsasign-all-min.js" type="text/javascript" charset="utf-8"></script>
+<script>
+    //添加封面
+    function addGenesis() {
+        loading.baosight.showPageLoadingMsg(true);
+        var content = $("#idInput").val();
+        $.post("/addGenesis", "genesis="+content, function (data) {
+            $("#idInput").val("");
+            $("#result").html(data);
+            showlist();
+            loading.baosight.hidePageLoadingMsg();
+        })
+    }
+
+    //展示数据
+    function showlist() {
+        var content = $("#idInput").val();
+        console.log("这是showlist方法")
+        loading.baosight.showPageLoadingMsg(true);
+
+        $.get("/showlist",function (data) {
+
+
+            loading.baosight.hidePageLoadingMsg();
+
+            $("#idTbody").html("");
+            //遍历, 添加数据
+            
+            for (var i = 0; i < data.length; i++){
+                var id = data[i].id;
+                var content = data[i].content;
+                var hash = data[i].hash;
+                var nonce = data[i].nonce;
+                var preHash = data[i].preHash;
+                $("#idTbody").append("<tr><th>" + id + "</th><td>" + content + "</td><td>" + hash + "</td><td>" + nonce + "</td><td>"+preHash+"</td></tr>")
+            }
+        })
+    }
+
+    //添加交易信息
+
+    function addNote(){
+        console.log("这是addnote方法")
+
+        var senderPrivateKey = $("#senderPrivateKey").val();
+        var senderPublicKey = $("#senderPublicKey").val();
+        var receiverPublicKey = $("#receiverPublicKey").val();
+        var content = $("#idInput").val();
+
+        //生成私钥
+        var priKey = KEYUTIL.getKey(senderPrivateKey);
+        //指定生成签名使用的算法
+        var sig = new KJUR.crypto.Signature({"alg": "SHA256withRSA"})
+        //初始化私钥
+        sig.init(priKey);
+        //传入原文 后面用于生成签名数据
+        sig.updateString(content);
+        //生成签名数据
+        var sigValueHex = sig.sign();
+        //这是进度条
+        loading.baosight.showPageLoadingMsg();
+
+        $.post("/addNote", {
+            senderPublickKey: senderPublicKey,
+            receiverPublickKey: receiverPublicKey,
+            signature: sigValueHex,
+            content: content,
+        }, function (data) {
+            $("#result").html(data);
+            loading.baosight.hidePageLoadingMsg();
+            $("#inputCtr").val("");
+            showlist();
+        })
+    }
+    function check() {
+        loading.baosight.showPageLoadingMsg(false);
+
+        $.get("check", function (data) {
+            loading.baosight.hidePageLoadingMsg();
+            $("#result").html(data);
+        })
+    }
+
+
+
+   $(function () {
+       showlist();
+   })
+</script>
+<label>
+    发送方的私钥
+</label>
+
+<textarea class="form-control" id="senderPrivateKey" cols="30" rows="5">
+    -----BEGIN PRIVATE KEY-----
+MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCgswbgADEGP/ALMYzYjErxkIcS
+t74yID/9Nzbke3qdVJSkmR73M5YgjR7oj8Gus4uFZUnW+8XOaEkloKrs6buwY6AXbS/AcZ+de9+I
+aQ5/1H3ruA7JtQFfUgzU8vUkOLefp2dD0JU5i0A/0KMmt0eXe9vuhzcX8HEQHgHZ4fHhP03+vLLm
+h771vQbl/PBFn2LjHMvCSbGevndx66RYq09XWf9wXCFaH8/VHHQzCS1B5chViOaYWN4yTwhR9dWY
+rHYTf7kUhx5EsoUJoDWM2h8lJJ/4CVneyIV8W3vT8i47+SWIxOIVMQvHZCQGOjX1VWfh90wUG4iB
+wweuZgTIFS31AgMBAAECggEAbkkPMdHP01sz8WqrH76AfHJU0Nq7NAmAANbQ3FOF3c27SY8wejS0
+FljjWnW2VaAw43aVC2603Sgi8yjlxTvPrIliyFEN0YPpKBpoWWTIJ6B8XrZtp66KZ5GW7tpitN4b
+3vzzWM4ga2KO0HzuS1bDUkoVsQipHcvMvGPrn016Q7uhcqEDLq+jyFykniXPPAJmMuWhMgtnQKgd
+/V41Q2MVIyQVOA7/urQGhpYoPks9GSyzdhcBLC27Ei77/ZjfzBlBY5zPTxh3exdF2Y2sUcbRkyQv
+bSdtVg4sstuw8L5Hp7bJburhF1ckTRVgzW/r+MtPTHsYynwfrdwnE3E5aQFk4QKBgQD/trgsbpRT
+8KGdRV8OTLmkh6HeaBrvu2vt1qe5KjXiAsNTUmk8iHhI53MIkMkP39MKd8dMdnkON9JmNjlNU6Zn
+Snnym71EhJ/HpzZUBUCgphUPWd5GQmFD4pG2Slmo4oZ7FTUYWf329e4DZIymEVdiVsYqCLlTMJW0
+rqMR+zgFbQKBgQCg4RQyI/39oRgVQN3rQDwdjQ0QRIK0OjG4ezyG8g4sxF/NJUuxWYfIWK5IPsz0
+wiVuDpnCDEBt5GcA35vr96HJy7PHmW6lytljumxCyGrARtPDfrGGhRkktvTXtXvmd/WJWApAsEaQ
+/rC2uyOSz+YMGhOaNktpZDYc2vTmhwVdqQKBgQDCd4K4x5+l9mnx4L/ZcB/+L+e57BIQHsiFp6kF
++EPiDZfd1d6SWnafeuTQrss5d05Xt5+pVq/ZUDqB4NrTI7p48vqqtiXJ5dJdU5zNaPEtOyDo+78+
+T10I81U8/G4TMbJ0CDzIuCebmIvZqK4N3UJHVxZ9AQVvbpNrRSRemF6SQQKBgADGlQ5Y1hSu/iq8
+EVXdDW0nDPUTH342+Z5mGbic2iylFcEreN32DI2Ov+hhRSO4++037M3euUDOZSC/80SEASez7736
+o2nxPHMapwL7bGhY7xR2O+zmH2Tp7OxNV7eYxHpRDluZff2c/MUkydsfXYCZb5bCxEJR1WD2PVAP
+PpthAoGBAOyQHYfrNIo/ZjZMmoQBQ+ugNUEK5hw0Sxntt5T5KxKj3BZMd9EqJjaDN8IlKYoR45FP
+WAgBjU5jLDjhp1EJydkjLsU/mjs9Ni6AludR/2pDgxrjugo5E1VTeWN2oyyVXhLbx+KM8cpE/xJd
+y41TMjVELHO5zNIF80IzgceGeuud
+-----END PRIVATE KEY-----
+</textarea>
+<label>
+    发送方的公钥
+</label>
+
+<textarea class="form-control" id="senderPublicKey" cols="30" rows="5">
+    MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAoLMG4AAxBj/wCzGM2IxK8ZCHEre+MiA/
+/Tc25Ht6nVSUpJke9zOWII0e6I/BrrOLhWVJ1vvFzmhJJaCq7Om7sGOgF20vwHGfnXvfiGkOf9R9
+67gOybUBX1IM1PL1JDi3n6dnQ9CVOYtAP9CjJrdHl3vb7oc3F/BxEB4B2eHx4T9N/ryy5oe+9b0G
+5fzwRZ9i4xzLwkmxnr53ceukWKtPV1n/cFwhWh/P1Rx0MwktQeXIVYjmmFjeMk8IUfXVmKx2E3+5
+FIceRLKFCaA1jNofJSSf+AlZ3siFfFt70/IuO/kliMTiFTELx2QkBjo19VVn4fdMFBuIgcMHrmYE
+yBUt9QIDAQAB
+</textarea>
+<label>
+    接收方的公钥
+</label>
+
+<textarea class="form-control" id="receiverPublicKey" cols="30" rows="5">
+    MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArV80FyWqCsT33lXpkYpgExxUX+XJJYTC
+z0sRA0GVSLXd54gXC/CkHLo9TR/l/S5q4WSQapZb45Zgmi+XWXDPEDnl494Aqa976jebgov6raxx
+SY8oCz6i2Bgm1xOZOHuEv9LTY1B93rOVqTfSrvBZV5fLeMLevqlACXHUdmOOmhgce8AkPHdSmwMR
+aa0DjNGtGSZeeGNrrQX0HeRwxCy28SH/yi5LqHEVdafL+wlvzxGLPCUTMbDIOWA1dIXSmCYBheex
+opvUCM6oDCPwzcJr7nDhn9f0Fp+o1iGmVPozcKVbd7S25pai90iIBisrLVTjc+1Xc+XGodQWrLvJ
+WsLCCwIDAQAB
+</textarea>
+<br>
+<label>
+    转账信息
+</label>
+<!--输入框-->
+<input type="text" class="form-control" id="idInput" placeholder="请输入内容" style="width: 600px"> <br>
+
+
+
+<!--按钮组-->
+<div class="btn-group btn-group-lg" role="group">
+    <button type="button" class="btn btn-default" onclick="addGenesis()">添加封面</button>
+    <button type="button" class="btn btn-default" onclick="addNote()">添加记录</button>
+    <button type="button" class="btn btn-default" onclick="check()">校验数据</button>
+
+</div>
+<!--用于展示结果-->
+<p class="bg-info" id="result">
+</p>
+<!--显示区块校验信息-->
+<table class="table">
+    <thead>
+    <tr>
+        <th>编号</th>
+        <th>内容</th>
+        <th>哈希值</th>
+        <th>nonce值</th>
+        <th>preBlockHash</th>
+    </tr>
+    </thead>
+    <tbody id="idTbody">
+
+    </tbody>
+</table>
+
+
+</body>
+</html>
